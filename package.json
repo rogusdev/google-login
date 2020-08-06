@@ -1,0 +1,10 @@
+{
+  "name": "google-login",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.4",
+    "google-auth-library": "^3.1.0"
+  }
+}

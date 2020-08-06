@@ -1,0 +1,183 @@
+<html>
+    <head>
+        <title>Google Signin Demo</title>
+
+<!--
+in same dir as this file, run:
+python -m SimpleHTTPServer 3000
+then go to:
+http://localhost:3000/google-signin.html
+
+https://developers.google.com/identity/sign-in/web/sign-in
+https://developers.google.com/identity/sign-in/web/reference
+https://developers.google.com/identity/sign-in/web/backend-auth
+https://developers.google.com/identity/sign-in/web/people
+
+https://github.com/googleapis/google-api-dotnet-client
+https://developers.google.com/api-client-library/dotnet/get_started
+https://developers.google.com/api-client-library/
+
+https://github.com/google/google-api-javascript-client
+https://developers.google.com/api-client-library/javascript/samples/samples#authorizing-and-making-authorized-requests
+
+
+
+yarn init -y
+yarn add express googleapis
+
+# https://expressjs.com/en/starter/hello-world.html
+cat <<EOF > server.js
+const express = require('express')
+const app = express()
+const port = 3000
+
+app.use(express.static('public'))
+
+app.get('/', (req, res) => res.send('Hello World!'))
+
+app.listen(port, () => console.log(\`Example app listening on port \${port}!\`))
+EOF
+
+yarn start  # actually runs node server.js
+
+
+        <meta name="google-signin-client_id"
+            content="861609598303-o00osplh8n4jidur6mr6931c8sjikjuu.apps.googleusercontent.com" />
+-->
+        <script>
+            var state = {};
+/*
+            function onSignIn(googleUser) {
+                console.log(googleUser);
+                console.log("CHRIS google auto sign IN");
+                var profile = googleUser.getBasicProfile();
+                console.log(profile);
+                console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+                console.log('Name: ' + profile.getName());
+                console.log('Image URL: ' + profile.getImageUrl());
+                console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
+
+                console.log(googleUser.getAuthResponse());
+                state.id_token = googleUser.getAuthResponse().id_token;
+                console.log('Token: ' + state.id_token);
+            }
+*/
+            function googleInit() {
+                console.log("CHRIS google init");
+                gapi.load('auth2', () => {
+                    gapi.auth2.init({
+                        client_id: "861609598303-o00osplh8n4jidur6mr6931c8sjikjuu.apps.googleusercontent.com",
+                        fetch_basic_profile: true,
+                        ux_mode: "redirect"
+                    }).then(() => {
+                        console.log("CHRIS: google auth SUCCESS");
+                        var googleAuth = gapi.auth2.getAuthInstance();
+                        googleAuth.isSignedIn.listen(updateGoogleSigninStatus);
+                        updateGoogleSigninStatus(googleAuth.isSignedIn.get());
+                    }).catch(err => {
+                        console.log("CHRIS: google auth FAIL");
+                        console.log(err);
+                    })
+                })
+            }
+
+            function updateGoogleSigninStatus(isSignedIn) {
+                console.log("CHRIS: google signin status: " + isSignedIn);
+                var showNoAuthElems = true;
+                var showYesAuthElems = true;
+                if (isSignedIn) {
+                    showYesAuthElems = false;
+                    var googleUser = gapi.auth2.getAuthInstance().currentUser.get();
+                    console.log(googleUser);
+                    console.log(googleUser.getAuthResponse());
+                    state.id_token = googleUser.getAuthResponse().id_token;
+                    console.log('Token: ' + state.id_token);
+
+                    var profile = googleUser.getBasicProfile();
+                    console.log(profile);
+                    console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+                    console.log('Name: ' + profile.getName());
+                    console.log('Image URL: ' + profile.getImageUrl());
+                    console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
+
+                    var helloUserElem = document.getElementById("hello-user");
+                    helloUserElem.getElementsByTagName("img")[0]
+                        .setAttribute("src", profile.getImageUrl());
+                    helloUserElem.getElementsByTagName("span")[0]
+                        .textContent = profile.getName();
+                } else {
+                    showNoAuthElems = false;
+                    console.log("No google user!");
+                    state = {};
+                }
+                Array.from(document.getElementsByClassName("no-auth"))
+                    .forEach(e => e.hidden = showNoAuthElems);
+                Array.from(document.getElementsByClassName("yes-auth"))
+                    .forEach(e => e.hidden = showYesAuthElems);
+            }
+
+            // https://developers.google.com/identity/sign-in/web/build-button
+            function googleSignIn() {
+                console.log("CHRIS google sign IN");
+                var auth2 = gapi.auth2.getAuthInstance();
+                auth2.signIn().then(googleUser => {
+                    console.log('User signed in.');
+                    console.log(googleUser);
+                }).catch(err => {
+                    console.log("CHRIS signin FAILED");
+                    console.log(err);
+                });
+            }
+
+            function googleSignOut() {
+                console.log("CHRIS google sign OUT");
+                var auth2 = gapi.auth2.getAuthInstance();
+                auth2.signOut().then(function () {
+                    console.log('User signed out.');
+                });
+            }
+
+            function test() {
+                // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
+                fetch('http://localhost:3000/authtest', {
+                    method: "POST", // *GET, POST, PUT, DELETE, etc.
+                    //mode: "cors", // no-cors, cors, *same-origin
+                    cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+                    credentials: "same-origin", // include, *same-origin, omit
+                    headers: {
+                        "Content-Type": "application/json",
+                        // "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: JSON.stringify({ id_token: state.id_token })
+                })
+                .then(function(response) {
+                    console.log(JSON.stringify(response.json()));
+                })
+            }
+        </script>
+    </head>
+    <body>
+<!--
+        <div class="g-signin2" data-onsuccess="onSignIn"></div>
+-->
+
+        <div class="no-auth">
+            <div>Who are you?</div>
+            <div><a href="#" onclick="googleSignIn();">Sign In</a></div>
+        </div>
+
+        <div class="yes-auth">
+            <div>
+                Hello
+                <div id="hello-user">
+                    <img />
+                    <span></span>
+                </div>
+            </div>
+            <div><a href="#" onclick="googleSignOut();">Sign out</a></div>
+            <div><a href="#" onclick="test();">Test</a></div>
+        </div>
+
+        <script src="https://apis.google.com/js/platform.js?onload=googleInit" async defer></script>
+    </body>
+</html>
